@@ -1,0 +1,62 @@
+name: Wake up Streamlit App
+
+on:
+  schedule:
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
+
+jobs:
+  wake-sidebar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Selenium
+        run: |
+          pip install selenium
+
+      - name: Run Sleep-Wake Script
+        env:
+          APP_URL: "https://ai-predictx.streamlit.app"
+        run: |
+          python - <<EOF
+          import os
+          import time
+          from selenium import webdriver
+          from selenium.webdriver.chrome.options import Options
+          from selenium.webdriver.common.by import By
+          from selenium.webdriver.support.ui import WebDriverWait
+          from selenium.webdriver.support import expected_conditions as EC
+
+          chrome_options = Options()
+          chrome_options.add_argument("--headless")
+          chrome_options.add_argument("--no-sandbox")
+          chrome_options.add_argument("--disable-dev-shm-usage")
+          
+          driver = webdriver.Chrome(options=chrome_options)
+          url = os.environ.get("APP_URL")
+          print(f"Opening URL: {url}")
+          driver.get(url)
+          
+          # ऐप के लोड होने या स्लीपिंग बटन के आने का 20 सेकंड इंतज़ार करें
+          time.sleep(20)
+          
+          try:
+              # यह कोड 'Yes, get this app back up!' बटन को ढूंढेगा
+              button = WebDriverWait(driver, 15).until(
+                  EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'back up')]"))
+              )
+              button.click()
+              print("App was sleeping. Clicked the 'Wake Up' button successfully!")
+              time.sleep(10) # क्लिक के बाद थोड़ा रुकें
+          except Exception as e:
+              print("App is already awake or button not found. No action needed.")
+          
+          driver.quit()
+          EOF
